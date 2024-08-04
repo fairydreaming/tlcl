@@ -2,7 +2,7 @@
 tlcl is a simple tool caller for llama.cpp
 It currently only supports llama 3.1 models and ipython environment.
 
-# Usage
+## Usage
 
 Example usage:
 
@@ -21,4 +21,5 @@ Python version:  3.12.4 | packaged by Anaconda, Inc. | (main, Jun 18 2024, 15:12
 This program will print the version of Python that is currently running.<|eot_id|>
 ```
 
-Requirements: requests, ipython.
+## Requirements
+requests, ipython.
