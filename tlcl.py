@@ -12,6 +12,7 @@ DEFAULT_SYSTEM_PROMPT="""Environment: ipython
 
 # Tool Instructions
 - You have access to the stateful ipython environment
+- After executing the python program summarize its output for the user
 """
 
 parser = argparse.ArgumentParser()
@@ -64,44 +65,63 @@ def create_request_data(prompt):
         "prompt": prompt 
     }
 
+def print_role_header(role):
+    print("#" * 32 + f" role: {role:<10} " + "#" * 32)
+
+def print_last_message(conversation, is_verbose):
+    last_message_index = conversation.rfind("<|start_header_id|>")
+    assert(last_message_index >= 0)
+    last_message = conversation[last_message_index:]
+    print(last_message)
+
+def input_if_none(user_prompt):
+    if user_prompt is None:
+        return input("User prompt: ")
+    else:
+        return user_prompt
+
 headers = { "Content-Type": "application/json" }
 
 python_tag_regex = re.compile(re.escape("<|python_tag|>") + "(.*?)" + re.escape("<|eom_id|>"), re.DOTALL)
 
 ipython_session = IPythonSession()
 
+print_role_header("system")
 conversation = apply_prompt_template("system", system_prompt)
+print_last_message(conversation, is_verbose)
 
-if user_prompt is not None:
-    print(user_prompt)
-    user_input = user_prompt
-else:
-    user_input = input("Prompt: ")
-conversation += apply_prompt_template("user", user_input)
+print_role_header("user")
+conversation += apply_prompt_template("user", input_if_none(user_prompt))
+print_last_message(conversation, is_verbose)
+
 conversation += apply_prompt_template("assistant")
 
 while(True):
-    if is_verbose:
-        print(conversation)
     response = requests.post(llama_endpoint, json=create_request_data(conversation), headers=headers)
     assert(response.status_code == 200)
 
     response_content = response.json()["content"]
-    print(response_content)
+    print_role_header("assistant")
     conversation += response_content
+    print_last_message(conversation, is_verbose)
 
     match = python_tag_regex.search(response_content)
     if match:
         tool_request = match.group(1)
         tool_response = ipython_session.execute(tool_request)
-        print(tool_response)
 
+        print_role_header("ipython")
         conversation += apply_prompt_template("ipython", tool_response)
+        print_last_message(conversation, is_verbose)
+
         conversation += apply_prompt_template("assistant")
     else:
         if is_interactive:
+            print_role_header("user")
             user_input = input("Prompt: ")
             conversation += apply_prompt_template("user", user_input)
+            print_last_message(conversation, is_verbose)
+
             conversation += apply_prompt_template("assistant")
         else:
             break
