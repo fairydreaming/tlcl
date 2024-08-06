@@ -4,7 +4,7 @@
 The script checks if the model has invoked the tool by looking for `<|python_tag|>` and `<|eom_id|>` tokens in the generated tokens.
 When the script finds these tokens, it extracts the text between them and runs it as a Python program in the IPython environment.
 Text outputted during the program execution is passed back to the model by using the `ipython` role.
-Finally, the model generates its reseponse based on the tool call and the tool text output.
+Finally, the model generates its response based on the tool call and the tool text output.
 
 Read https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1/ for more details.
 
