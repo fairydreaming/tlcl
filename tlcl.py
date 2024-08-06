@@ -4,6 +4,7 @@ import re
 import io
 import requests
 import argparse
+import json
 
 from IPython import InteractiveShell
 from contextlib import contextmanager, redirect_stdout, redirect_stderr
@@ -20,6 +21,7 @@ parser.add_argument("-u", "--url", help="URL of the llama.cpp server completion 
 parser.add_argument("-s", "--system-prompt", help = "System prompt", default=DEFAULT_SYSTEM_PROMPT, type=str)
 parser.add_argument("-p", "--prompt", help="User prompt", default=None, type=str)
 parser.add_argument("-i", "--interactive", help="Run in interactive mode", action='store_true')
+parser.add_argument("-t", "--stream", help="Print received tokens in real time", action='store_true')
 parser.add_argument("-v", "--verbose", help="Increase verbosity of the output", action='store_true')
 
 args = parser.parse_args()
@@ -28,6 +30,7 @@ system_prompt = args.system_prompt
 user_prompt = args.prompt
 is_interactive = args.interactive
 is_verbose = args.verbose
+is_stream = args.stream
 
 @contextmanager
 def capture_output():
@@ -62,17 +65,18 @@ def apply_prompt_template(role, prompt = None):
 def create_request_data(prompt):
     return { 
         "cache_prompt": True,
-        "prompt": prompt 
+        "stream": is_stream,
+        "prompt": prompt,
     }
 
 def print_role_header(role):
     print("#" * 32 + f" role: {role:<10} " + "#" * 32)
 
-def print_last_message(conversation, is_verbose):
+def print_last_message(conversation, is_verbose, end="\n"):
     last_message_index = conversation.rfind("<|start_header_id|>")
     assert(last_message_index >= 0)
     last_message = conversation[last_message_index:]
-    print(last_message)
+    print(last_message, end=end)
 
 def input_if_none(user_prompt):
     if user_prompt is None:
@@ -97,13 +101,29 @@ print_last_message(conversation, is_verbose)
 conversation += apply_prompt_template("assistant")
 
 while(True):
-    response = requests.post(llama_endpoint, json=create_request_data(conversation), headers=headers)
+    response = requests.post(llama_endpoint, json=create_request_data(conversation), headers=headers, stream=is_stream)
     assert(response.status_code == 200)
 
-    response_content = response.json()["content"]
     print_role_header("assistant")
-    conversation += response_content
-    print_last_message(conversation, is_verbose)
+    if is_stream:
+        print_last_message(conversation, is_verbose, end="")
+
+        response_content = ""
+        for line in response.iter_lines():
+            # filter out keep-alive new lines
+            if line:
+                decoded_line = line.decode("utf-8")
+                decoded_json = json.loads(decoded_line.removeprefix("data: "))
+                if "content" in decoded_json:
+                    partial_content = decoded_json["content"]
+                    response_content += partial_content
+                    conversation += partial_content
+                    print(partial_content, flush=True, end="")
+        print()
+    else:
+        response_content = response.json()["content"]
+        conversation += response_content
+        print_last_message(conversation, is_verbose)
 
     match = python_tag_regex.search(response_content)
     if match:
