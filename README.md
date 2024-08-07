@@ -8,10 +8,17 @@ Finally, the model generates its response based on the tool call and the tool te
 
 Read https://llama.meta.com/docs/model-cards-and-prompt-formats/llama3_1/ for more details.
 
+## Features
+
+Currently supported tools are:
+* code interpreter
+* brave search
+
 ## Usage
 
 1. Run Llama 3.1 model on `llama-server`. Make sure to add `--special` option.
-2. Run `tlcl.py`. Use `--help` to list available options. 
+2. Set BRAVE_API_KEY environment variable to your Brave API key if you want to use brave search tool.
+3. Run `tlcl.py`. Use `--help` to list available options. 
 
 Example usage:
 
