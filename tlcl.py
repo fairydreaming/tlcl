@@ -10,6 +10,7 @@ from IPython import InteractiveShell
 from contextlib import contextmanager, redirect_stdout, redirect_stderr
 
 DEFAULT_SYSTEM_PROMPT="""Environment: ipython
+Tools: brave_search
 
 # Tool Instructions
 - You have access to the stateful ipython environment
@@ -52,7 +53,7 @@ class IPythonSession:
                     output = buffer.getvalue()
                     return output if output else "No output"
                 else:
-                    return f"Error during execution: {result.error_in_exec}"
+                    return f"Error during execution:\n{buffer.getvalue()}"
             except Exception as e:
                 return f"Exception: {e}"
 
@@ -89,6 +90,7 @@ headers = { "Content-Type": "application/json" }
 python_tag_regex = re.compile(re.escape("<|python_tag|>") + "(.*?)" + re.escape("<|eom_id|>"), re.DOTALL)
 
 ipython_session = IPythonSession()
+ipython_session.execute("import brave_search")
 
 print_role_header("system")
 conversation = apply_prompt_template("system", system_prompt)
