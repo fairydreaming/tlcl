@@ -23,6 +23,7 @@ parser.add_argument("-u", "--url", help="URL of the llama.cpp server completion 
 parser.add_argument("-s", "--system-prompt", help = "System prompt", default=DEFAULT_SYSTEM_PROMPT, type=str)
 parser.add_argument("-p", "--prompt", help="User prompt", default=None, type=str)
 parser.add_argument("-i", "--interactive", help="Run in interactive mode", action='store_true')
+parser.add_argument("-a", "--autonomous", help="Run in autonomous mode", action='store_true')
 parser.add_argument("-t", "--stream", help="Print received tokens in real time", action='store_true')
 parser.add_argument("-v", "--verbose", help="Increase verbosity of the output", action='store_true')
 
@@ -33,6 +34,7 @@ user_prompt = args.prompt
 is_interactive = args.interactive
 is_verbose = args.verbose
 is_stream = args.stream
+is_auto = args.autonomous
 
 system_prompt_file = None
 
@@ -109,17 +111,21 @@ print_role_header("system")
 conversation = apply_prompt_template("system", system_prompt)
 print_last_message(conversation, is_verbose)
 
-print_role_header("user")
-conversation += apply_prompt_template("user", input_if_none(user_prompt))
-print_last_message(conversation, is_verbose)
-
-conversation += apply_prompt_template("assistant")
+if is_auto:
+    print_role_header("user")
+    conversation += apply_prompt_template("user")
+    last_role = "user"
+else:
+    print_role_header("user")
+    conversation += apply_prompt_template("user", input_if_none(user_prompt))
+    print_last_message(conversation, is_verbose)
+    conversation += apply_prompt_template("assistant")
+    last_role = "assistant"
 
 while(True):
     response = requests.post(llama_endpoint, json=create_request_data(conversation), headers=headers, stream=is_stream)
     assert(response.status_code == 200)
 
-    print_role_header("assistant")
     if is_stream:
         print_last_message(conversation, is_verbose, end="")
 
@@ -168,6 +174,15 @@ while(True):
             print_last_message(conversation, is_verbose)
 
             conversation += apply_prompt_template("assistant")
+        elif is_auto:
+            if last_role == "assistant":
+                print_role_header("user")
+                conversation += apply_prompt_template("user")
+                last_role = "user"
+            elif last_role == "user":
+                print_role_header("assistant")
+                conversation += apply_prompt_template("assistant")
+                last_role = "assistant"
         else:
             break
 
