@@ -34,15 +34,17 @@ is_interactive = args.interactive
 is_verbose = args.verbose
 is_stream = args.stream
 
+system_prompt_file = None
+
 if system_prompt and Path(system_prompt).is_file():
+    system_prompt_file = system_prompt
+    system_prompt_mtime = Path(system_prompt_file).stat().st_mtime
     with open(system_prompt, 'r') as file:
         system_prompt = file.read()
 
 if user_prompt and Path(user_prompt).is_file():
     with open(user_prompt, 'r') as file:
         user_prompt = file.read()
-
-
 
 @contextmanager
 def capture_output():
@@ -137,6 +139,16 @@ while(True):
         response_content = response.json()["content"]
         conversation += response_content
         print_last_message(conversation, is_verbose)
+
+    if system_prompt_file:
+        prev_system_prompt_mtime = system_prompt_mtime
+        system_prompt_mtime = Path(system_prompt_file).stat().st_mtime
+        if system_prompt_mtime > prev_system_prompt_mtime:
+            print_role_header("system")
+            with open(system_prompt_file, 'r') as file:
+                system_prompt = file.read()
+            conversation = apply_prompt_template("system", system_prompt)
+            print_last_message(conversation, is_verbose)
 
     match = python_tag_regex.search(response_content)
     if match:
