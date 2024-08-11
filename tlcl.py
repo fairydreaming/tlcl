@@ -2,9 +2,12 @@
 
 import re
 import io
+import sys
 import requests
 import argparse
 import json
+import time
+import signal
 
 from IPython import InteractiveShell
 from contextlib import contextmanager, redirect_stdout, redirect_stderr
@@ -18,6 +21,11 @@ Tools: brave_search
 - After executing the python program summarize its output for the user
 """
 
+def generate_log_file_name():
+    current_time = time.strftime("%Y-%m-%d-%H-%M-%S")
+    log_filename = f"tlcl-{current_time}.log"
+    return log_filename
+
 parser = argparse.ArgumentParser()
 parser.add_argument("-u", "--url", help="URL of the llama.cpp server completion endpoint", default="http://127.0.0.1:8080/completion", type=str)
 parser.add_argument("-s", "--system-prompt", help = "System prompt", default=DEFAULT_SYSTEM_PROMPT, type=str)
@@ -25,6 +33,7 @@ parser.add_argument("-p", "--prompt", help="User prompt", default=None, type=str
 parser.add_argument("-i", "--interactive", help="Run in interactive mode", action='store_true')
 parser.add_argument("-a", "--autonomous", help="Run in autonomous mode", action='store_true')
 parser.add_argument("-t", "--stream", help="Print received tokens in real time", action='store_true')
+parser.add_argument("-l", "--log", help="Log standard output to a file", const=generate_log_file_name(), default=None, nargs='?')
 parser.add_argument("-v", "--verbose", help="Increase verbosity of the output", action='store_true')
 
 args = parser.parse_args()
@@ -35,6 +44,7 @@ is_interactive = args.interactive
 is_verbose = args.verbose
 is_stream = args.stream
 is_auto = args.autonomous
+log_file = args.log
 
 system_prompt_file = None
 
@@ -71,6 +81,35 @@ class IPythonSession:
                     return f"Error during execution:\n{buffer.getvalue()}"
             except Exception as e:
                 return f"Exception: {e}"
+
+class Tee(object):
+    def __init__(self, log_file_name):
+        self.log_file = open(log_file_name, "w")
+        self.stdout = sys.stdout
+        sys.stdout = self
+
+    def close(self):
+        sys.stdout = self.stdout
+        self.log_file.close()
+
+    def write(self, data):
+        self.log_file.write(data)
+        self.stdout.write(data)
+
+    def flush(self):
+        self.log_file.flush()
+        self.stdout.flush()
+
+tee = Tee(log_file) if log_file is not None else None
+
+def signal_handler(signum, frame):
+    print("\nExiting...")
+    global tee
+    if tee is not None:
+        tee.close()
+    sys.exit(0)
+
+signal.signal(signal.SIGINT, signal_handler)
 
 def apply_prompt_template(role, prompt = None):
     if prompt:
