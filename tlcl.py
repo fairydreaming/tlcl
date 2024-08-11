@@ -8,6 +8,7 @@ import json
 
 from IPython import InteractiveShell
 from contextlib import contextmanager, redirect_stdout, redirect_stderr
+from pathlib import Path
 
 DEFAULT_SYSTEM_PROMPT="""Environment: ipython
 Tools: brave_search
@@ -32,6 +33,16 @@ user_prompt = args.prompt
 is_interactive = args.interactive
 is_verbose = args.verbose
 is_stream = args.stream
+
+if system_prompt and Path(system_prompt).is_file():
+    with open(system_prompt, 'r') as file:
+        system_prompt = file.read()
+
+if user_prompt and Path(user_prompt).is_file():
+    with open(user_prompt, 'r') as file:
+        user_prompt = file.read()
+
+
 
 @contextmanager
 def capture_output():
