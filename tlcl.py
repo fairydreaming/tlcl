@@ -158,6 +158,7 @@ else:
     print_role_header("user")
     conversation += apply_prompt_template("user", input_if_none(user_prompt))
     print_last_message(conversation, is_verbose)
+    print_role_header("assistant")
     conversation += apply_prompt_template("assistant")
     last_role = "assistant"
 
@@ -212,6 +213,7 @@ while(True):
             conversation += apply_prompt_template("user", user_input)
             print_last_message(conversation, is_verbose)
 
+            print_role_header("assistant")
             conversation += apply_prompt_template("assistant")
         elif is_auto:
             if last_role == "assistant":
