@@ -14,6 +14,17 @@ Currently supported tools are:
 * code interpreter
 * brave search
 
+There are three modes of operation available:
+1. Single round of interaction with the model.
+In this mode the model generates a response to the user prompt and then the script exits.
+This mode is the default and doesn't require any options.
+3. Continuous interaction with the model.
+In this mode, after the first interaction, the user is asked to enter another prompt, and the interaction continues indefinitely.
+This mode is selected with `--interactive` option.
+4. Autonomous mode.
+In this mode the model generates text for both the user and assistant roles. The first user prompt can still be specified in the command line.
+This mode is selected with `--autonomous` option.
+
 ## Usage
 
 1. Run Llama 3.1 model on `llama-server`. Make sure to add `--special` option.
