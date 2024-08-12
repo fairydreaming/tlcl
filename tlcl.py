@@ -150,7 +150,7 @@ print_role_header("system")
 conversation = apply_prompt_template("system", system_prompt)
 print_last_message(conversation, is_verbose)
 
-if is_auto:
+if is_auto and user_prompt is None:
     print_role_header("user")
     conversation += apply_prompt_template("user")
     last_role = "user"
