@@ -205,6 +205,7 @@ while(True):
         conversation += apply_prompt_template("ipython", tool_response)
         print_last_message(conversation, is_verbose)
 
+        print_role_header("assistant")
         conversation += apply_prompt_template("assistant")
     else:
         if is_interactive:
